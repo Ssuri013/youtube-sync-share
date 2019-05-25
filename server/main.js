@@ -35,9 +35,12 @@ var wss = new WebSocketServer({
     // path: "/hereIsWS"
 });
 
+var clients = []; // code to remove clients
+
 wss.on("connection", function (ws) {
+    clients.push(ws);    
     ws.on('message', function incoming(message) {
-        console.log('received: %s', message);
+        console.log('received: %s', clients.length);
+        clients.forEach( c => c.send(message)); 
     });
-    ws.send('something');
 });
