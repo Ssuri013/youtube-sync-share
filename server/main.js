@@ -36,29 +36,11 @@ var wss = new WebSocketServer({
 });
 
 var clients = []; // code to remove clients
-currentVideoInfo = {
-    videoId: "",
-    seekTo: 0,
-    clientNames: []
-}
-
 
 wss.on("connection", function (ws) {
     clients.push(ws);    
-    ws.on('open', (e)=>{
-        console.log(e, "open")
-    })
-    
     ws.on('message', function incoming(message) {
-        message = JSON.parse(message);
-        currentVideoInfo = { ...currentVideoInfo, ...message}
-        clients.forEach( c => c.send(JSON.stringify(currentVideoInfo))); 
+        console.log('received: %s', clients.length);
+        clients.forEach( c => c.send(message)); 
     });
-    
-    ws.on('close', () => { //works
-        clients.splice(clients.indexOf(ws), 1);
-        clients.forEach( c => c.send("Client left video broadcast"));
-        console.log("connection closed")
-    })
-    
 });
