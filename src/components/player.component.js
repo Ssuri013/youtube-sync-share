@@ -1,46 +1,34 @@
 import React from 'react';
 import YouTube from 'react-youtube';
+import { start } from 'repl';
  
 class Player extends React.Component {
 
   constructor() {
     super();
     let ws = new WebSocket('ws://localhost:8000');
-    this.state = {ws};
+    this.state = { ws, videoId: '', seekTo: 0 };
   }
 
   componentDidMount() {
-    // fetch("http://localhost:8000/login")
-    //   .then(res => res.json())
-    //   .then(
-    //     (result) => {
-    //       // this.setState({
-    //       //   isLoaded: true,
-    //       //   items: result.items
-    //       // });
-    //       console.log('in call rsponse');
-    //       debugger;
-    //       console.log(result, "ss");
-    //     },
-    //     // Note: it's important to handle errors here
-    //     // instead of a catch() block so that we don't swallow
-    //     // exceptions from actual bugs in components.
-    //     (error) => {
-    //       console.log("err aaya");
-    //     }
-    //   );
-    
 
     // Connection opened
     this.state.ws.addEventListener('open', (event) => {
-      this.state.ws.send('Hello Server!');
+      // this.state.ws.send({username: this.props.userName || 'bypassed name'});
     });
 
     // Listen for messages
-    this.state.ws.addEventListener('message', function (event) {
+    this.state.ws.addEventListener('message', (event) => {
       console.log('Message from server ', event.data);
-      
+      this.setState({...event.data});
+      event.target.seekTo(event.data);
     });
+
+  }
+
+  componentWillUpdate(nextProps, nextState) {
+    //handle lag of 500ms
+    
   }
 
   render() {
@@ -48,33 +36,41 @@ class Player extends React.Component {
       height: '390',
       width: '640',
       playerVars: { // https://developers.google.com/youtube/player_parameters
-        autoplay: 1
+        autoplay: 1,
+        // start: this.state.seekTo
       }
     };
- 
+    let x = 'Connecting to your peers';
+    if (this.state.ws.readyState==1) {
+      x = this.state.videoId.length > 0? '': 'Select a video to start with';
+    }
+
     return (
-      <YouTube
-        videoId="hWFDujYzvbI"
-        opts={opts}
-        onReady={this._onReady}
-        onStateChange={this.stateChanged}
-      />
+      <div>
+        { x }
+        <YouTube
+          videoId={this.state.videoId || 'b0v-X9pcSos'}
+          opts={opts}
+          onReady={this.onReady}
+          onStateChange={this.stateChanged}
+        />
+      </div>
     );
   }
  
   stateChanged = (event)=> {
-    console.log(event); // can be used to get current state and pause and play task 
-    event.target.getCurrentTime();
-    this.state.ws.send(event.target.getCurrentTime());
-    // send this to server and broadcast it
+    //ready to receive msgs
+    if(this.state.ws.readyState == 1) { 
+        this.state.ws.send( JSON.stringify({seekTo: event.target.getCurrentTime(), videoId: this.state.videoId}))
+    }    
   }
 
-  _onReady(event) {
+  onReady(event) {
     // access to player in all event handlers via event.target
     // event.target.pauseVideo();
     event.target.setVolume(0); // for development as it annoys me
-    event.target.seekTo(60); // accepts int seconds
-    console.log(event);
+     // accepts int seconds
+    // console.log(event);
   }
 
 }
