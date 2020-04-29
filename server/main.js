@@ -1,62 +1,55 @@
-// const WebSocket = require('ws');
+let WebSocketServer = require("ws").Server,
+Express = require( "express" ),
+HTTP = require("http"),
+App = Express(),
+Server = HTTP.createServer(App),
+cors = require('cors');
 
-// const wss = new WebSocket.Server({ port: 8080 });
+App.use(cors()); // modify to allow just 3000
 
-// wss.on('connection', function connection(ws) {
-//   ws.on('message', function incoming(message) {
-//     console.log('received: %s', message);
-//   });
-// });
-
-
-
-
-var WebSocketServer = require("ws").Server,
-express = require("express"),
-http = require("http"),
-app = express(),
-server = http.createServer(app);
-var cors = require('cors');
-
-
-app.use(cors()); //modify to allow just 3000
-app.get("/login", (req, res) => {
+App.get("/test", (req, res) => {
     console.log('call recieved on login');
     res.send("hello")
 });
-
-
-server.listen(8000, () => {
+Server.listen(8000, () => {
     console.log('App listening on 8000')
 });
 
-var wss = new WebSocketServer({
-    server: server //,
+let wss = new WebSocketServer({
+    server: Server //,
     // path: "/hereIsWS"
 });
 
-var clients = []; // code to remove clients
-currentVideoInfo = {
+// list of open connections
+let clients = [];
+
+let currentVideoInfo = {
     videoId: "",
     seekTo: 0,
     clientNames: []
 }
 
-
 wss.on("connection", function (ws) {
-    clients.push(ws);    
+    clients.push(ws); 
     ws.on('open', (e)=>{
         console.log(e, "open")
     })
     
+    // Video time or url change
     ws.on('message', function incoming(message) {
-        message = JSON.parse(message);
-        currentVideoInfo = { ...currentVideoInfo, ...message}
-        clients.forEach( c => c.send(JSON.stringify(currentVideoInfo))); 
+        message = JSON.parse(message)
+        if(message.username)
+            currentVideoInfo.clientNames.push(message.username)
+        else {
+            currentVideoInfo = { ...currentVideoInfo, ...message}        
+            clients.forEach( c => c.send(JSON.stringify(currentVideoInfo)));
+        } 
     });
     
-    ws.on('close', () => { //works
-        clients.splice(clients.indexOf(ws), 1);
+    ws.on('close', () => { //remove client on socket closure
+        const indexOfQuitter = clients.indexOf(ws)
+        clients.splice(indexOfQuitter, 1);
+        currentVideoInfo.clientNames.splice(indexOfQuitter, 1)
         clients.forEach( c => c.send("Client left video broadcast"));
         console.log("connection closed")
     })
